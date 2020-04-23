@@ -75,3 +75,43 @@ void renderAscii(const Map& map1, istream& file) {
     std::cout << "\n";
   }
 }
+
+static string getHtmlColor(string c, const string& color) {
+  return "<font color=\"" + color + "\">" + c + "</font>";
+}
+
+string renderHtml(const Map& map1, const char* renderer) {
+  string ret;
+  unordered_map<string, string> tokens;
+  unordered_map<string, int> priority;
+  int cnt = 0;
+  istringstream file(renderer);
+  while (1) {
+    string token, character, color;
+    file >> std::quoted(token) >> character >> color;
+    if (!file)
+      break;
+    tokens[token] = getHtmlColor(character, color);
+    priority[token] = cnt++;
+  }
+  for (auto y : map1.elems.getBounds().getYRange()) {
+    for (auto x : map1.elems.getBounds().getXRange()) {
+      auto& elems = map1.elems[x][y];
+      if (!elems.empty()) {
+        auto glyph = chooseBest(elems, [&](const Token& t) {
+          if (priority.count(t))
+            return -priority.at(t);
+          else
+            return 10000;
+        });
+        if (tokens.count(glyph)) {
+          ret += tokens.at(glyph);
+          continue;
+        }
+      }
+      ret += " ";
+    }
+    ret += "<br/>";
+  }
+  return ret;
+}

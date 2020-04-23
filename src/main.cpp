@@ -70,6 +70,36 @@ static RandomGen getRNG(po::parser& flags) {
   return random;
 }
 
+static milliseconds getRealMillis() {
+  return duration_cast<milliseconds>(steady_clock::now().time_since_epoch());
+}
+
+extern "C" {
+const char* get_result (char* input, char* renderer, int size, int seed) {
+  RandomGen random;
+  if (seed == 0)
+    seed = getRealMillis().count();
+  random.init(seed);
+  Generator gen;
+  PrettyInputArchive ar({string(input)}, {});
+  auto get_error = [] (const string& s) {
+    return (new string("<font color=red>" + s + "</font>"))->c_str();
+  };
+  if (size < 1 || size > 30)
+    return get_error("Bad map size: " + to_string(size));
+  try {
+    ar(gen);
+  } catch (PrettyException& ex) {
+    return get_error(ex.text);
+  }
+  Map map{Table<unordered_set<Token>>(size, size)};
+  if (!gen.make(Canvas{map.elems.getBounds(), &map}, random)) {
+    return get_error("Generation failed.");
+  }
+  return (new string(renderHtml(map, renderer)))->c_str();
+}
+}
+
 int main(int argc, char* argv[]) {
   po::parser flags = getCommandLineFlags(argc, argv);
   auto gen = readGenerator(getInputPath(flags));
