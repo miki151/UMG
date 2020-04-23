@@ -5,14 +5,20 @@ CFLAGS = -Wall -std=c++14 -Wno-sign-compare -Wno-unused-variable -Wno-shift-coun
 ifndef GCC
 GCC = clang++
 endif
-CC = $(GCC)
-LD = $(CC)
 
 CFLAGS += -Werror -g
 
 OBJDIR = obj
 
 NAME = umgl
+
+ifdef WEBASM
+GCC = em++
+CFLAGS += -O3 -s EXPORTED_FUNCTIONS='["_get_result", "_main"]' -s EXTRA_EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' -s ASSERTIONS=1 -s DISABLE_EXCEPTION_CATCHING=0
+NAME = umgl.js
+endif
+CC = $(GCC)
+LD = $(CC)
 
 ROOT = ./
 TOROOT = ./../
@@ -27,7 +33,7 @@ SRCS = $(shell ls -t src/*.cpp)
 INSTALL_DIR = $(shell pwd)
 CFLAGS += "-DINSTALL_DIR=\"$(INSTALL_DIR)\""
 
-LIBS = -L/usr/lib/x86_64-linux-gnu -lstdc++fs ${LDFLAGS}
+LIBS = -L/usr/lib/x86_64-linux-gnu ${LDFLAGS}
 
 
 OBJS = $(addprefix $(OBJDIR)/,$(SRCS:.cpp=.o))
