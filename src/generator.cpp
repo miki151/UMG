@@ -25,13 +25,15 @@ bool make(const Generators::Reset& g, Canvas c, RandomGen&) {
 bool make(const Generators::SetMaybe& g, Canvas c, RandomGen& r) {
   for (auto v : c.area)
     if (g.predicate.apply(c.map, v, r))
-      c.map->elems[v].insert(g.token);
+      for (auto& token : g.tokens)
+        c.map->elems[v].insert(token);
   return true;
 }
 
 bool make(const Generators::Remove& g, Canvas c, RandomGen&) {
   for (auto v : c.area)
-    c.map->elems[v].erase(g.token);
+    for (auto& token : g.tokens)
+      c.map->elems[v].erase(token);
   return true;
 }
 
@@ -113,6 +115,8 @@ bool make(const Generators::Place& g, Canvas c, RandomGen& r) {
   for (int i : All(g.generators)) {
     auto size = g.generators[i].size;
     auto& generator = g.generators[i].generator;
+    if (size.x > c.area.width() || size.y > c.area.height())
+      return false;
     auto generate = [&] {
       const int numTries = g.generators[i].position ? 1 : 100000;
       for (int iter : Range(numTries)) {

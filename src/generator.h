@@ -30,13 +30,13 @@ struct Reset {
 
 struct SetMaybe {
   Predicate SERIAL(predicate);
-  Token SERIAL(token);
-  SERIALIZE_ALL(predicate, token)
+  vector<Token> SERIAL(tokens);
+  SERIALIZE_ALL(predicate, tokens)
 };
 
 struct Remove {
-  Token SERIAL(token);
-  SERIALIZE_ALL(token)
+  vector<Token> SERIAL(tokens);
+  SERIALIZE_ALL(tokens)
 };
 
 struct Margin {
@@ -77,7 +77,6 @@ struct Place {
     optional<PlacementPos> SERIAL(position);
     SERIALIZE_ALL(NAMED(size), NAMED(generator), OPTION(count), OPTION(predicate), OPTION(position))
   };
-
   vector<Elem> SERIAL(generators);
   SERIALIZE_ALL(generators)
 };
