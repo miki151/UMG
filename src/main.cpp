@@ -30,7 +30,7 @@ static Generator readGenerator(const string& path) {
   Generator gen;
   PrettyInputArchive ar({input}, {path});
   try {
-    ar(gen);
+    ar.readWithDefinitions(gen);
   } catch (PrettyException& ex) {
     std::cout << ex.text << "\n";
     exit(-1);
@@ -88,7 +88,7 @@ const char* get_result (char* input, char* renderer, int size, int seed) {
   if (size < 1 || size > 30)
     return get_error("Bad map size: " + to_string(size));
   try {
-    ar(gen);
+    ar.readWithDefinitions(gen);
   } catch (PrettyException& ex) {
     return get_error(ex.text);
   }

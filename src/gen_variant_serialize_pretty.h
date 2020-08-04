@@ -11,5 +11,5 @@ void serialize(PrettyInputArchive& ar1, VARIANT_NAME& v) {
   } else
   VARIANT_TYPES_LIST
 #undef X
-  ar1.error(name + " is not part of variant");
+  ar1.error(name + " is not part of variant "_s + typeid(VARIANT_NAME).name());
 }

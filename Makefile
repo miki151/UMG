@@ -1,6 +1,6 @@
 
 
-CFLAGS = -Wall -std=c++14 -Wno-sign-compare -Wno-unused-variable -Wno-shift-count-overflow -Wno-tautological-constant-out-of-range-compare -Wno-mismatched-tags -ftemplate-depth=512 -Wmissing-field-initializers -Wno-deprecated-declarations
+CFLAGS = -Wall -std=c++17 -Wno-sign-compare -Wno-unused-variable -Wno-shift-count-overflow -Wno-tautological-constant-out-of-range-compare -Wno-mismatched-tags -ftemplate-depth=512 -Wmissing-field-initializers -Wno-deprecated-declarations
 
 ifndef GCC
 GCC = clang++

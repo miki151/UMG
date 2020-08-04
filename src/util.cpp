@@ -462,7 +462,7 @@ vector<string> split(const string& s, const std::initializer_list<char>& delim) 
 }
 
 void Vec2::serialize(PrettyInputArchive& ar, const unsigned int version) {
-  ar(x, y);
+  ar(NAMED(x), NAMED(y));
 }
 
 RandomGen::RandomGen() {

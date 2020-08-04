@@ -51,7 +51,7 @@ struct Margins {
   int SERIAL(width);
   HeapAllocated<Generator> SERIAL(border);
   HeapAllocated<Generator> SERIAL(inside);
-  SERIALIZE_ALL(width, border, inside)
+  SERIALIZE_ALL(NAMED(width), NAMED(border), NAMED(inside))
 };
 
 struct HRatio {
