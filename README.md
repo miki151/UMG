@@ -4,4 +4,4 @@ UMG is a scripting language for generating random maps of any kind. It is easy t
 * easily test your layouts using the standalone tool.
 * add modding capability to your map generation.
 
-https://keeperrl.com/~michal/mapgen/
+https://keeperrl.com/~michal/umg_docs
