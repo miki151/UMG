@@ -2,6 +2,7 @@
 #include "ProgramOptions.h"
 #include "canvas.h"
 #include "render.h"
+#include "umg_include.h"
 
 static po::parser getCommandLineFlags(int argc, char* argv[]) {
   po::parser flags;
@@ -23,14 +24,14 @@ static ifstream openFile(const string& path) {
   return in;
 }
 
-static Generator readGenerator(const string& path) {
+static LayoutGenerator readLayoutGenerator(const string& path) {
   stringstream ss;
   ss << openFile(path).rdbuf();
   string input = ss.str();
-  Generator gen;
-  PrettyInputArchive ar({input}, {path});
+  LayoutGenerator gen;
+  PrettyInputArchive ar({string(umgInclude), input}, {"include.umg", path}, nullptr);
   try {
-    ar.readWithDefinitions(gen);
+    ar(gen);
   } catch (PrettyException& ex) {
     std::cout << ex.text << "\n";
     exit(-1);
@@ -38,9 +39,9 @@ static Generator readGenerator(const string& path) {
   return gen;
 }
 
-static Map generateMap(const Generator& gen, int size, RandomGen& random) {
-  Map map{Table<unordered_set<Token>>(size, size)};
-  if (!gen.make(Canvas{map.elems.getBounds(), &map}, random)) {
+static LayoutCanvas::Map generateMap(const LayoutGenerator& gen, int size, RandomGen& random) {
+  LayoutCanvas::Map map{Table<vector<Token>>(size, size)};
+  if (!gen.make(LayoutCanvas{map.elems.getBounds(), &map}, random)) {
     std::cout << "Generation failed.\n";
     exit(-1);
   }
@@ -75,25 +76,25 @@ static milliseconds getRealMillis() {
 }
 
 extern "C" {
-const char* get_result (char* input, char* renderer, int size, int seed) {
+const char* get_result(char* input, char* renderer, int size, int seed) {
   RandomGen random;
   if (seed == 0)
     seed = getRealMillis().count();
   random.init(seed);
-  Generator gen;
-  PrettyInputArchive ar({string(input)}, {});
+  LayoutGenerator gen;
+  PrettyInputArchive ar({string(umgInclude), string(input)}, {}, nullptr);
   auto get_error = [] (const string& s) {
     return (new string("<font color=red>" + s + "</font>"))->c_str();
   };
   if (size < 1 || size > 30)
     return get_error("Bad map size: " + to_string(size));
   try {
-    ar.readWithDefinitions(gen);
+    ar(gen);
   } catch (PrettyException& ex) {
     return get_error(ex.text);
   }
-  Map map{Table<unordered_set<Token>>(size, size)};
-  if (!gen.make(Canvas{map.elems.getBounds(), &map}, random)) {
+  LayoutCanvas::Map map{Table<vector<Token>>(size, size)};
+  if (!gen.make(LayoutCanvas{map.elems.getBounds(), &map}, random)) {
     return get_error("Generation failed.");
   }
   return (new string(renderHtml(map, renderer)))->c_str();
@@ -102,7 +103,7 @@ const char* get_result (char* input, char* renderer, int size, int seed) {
 
 int main(int argc, char* argv[]) {
   po::parser flags = getCommandLineFlags(argc, argv);
-  auto gen = readGenerator(getInputPath(flags));
+  auto gen = readLayoutGenerator(getInputPath(flags));
   int size = getMapSize(flags);
   auto random = getRNG(flags);
   auto map1 = generateMap(gen, size, random);

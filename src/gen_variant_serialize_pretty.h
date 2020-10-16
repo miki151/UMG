@@ -2,6 +2,7 @@
 
 void serialize(PrettyInputArchive& ar1, VARIANT_NAME& v) {
   string name;
+  auto bookmark = ar1.bookmark();
   ar1.readText(name);
 #define X(Type, Index)\
   if (name == #Type) { \
@@ -11,5 +12,18 @@ void serialize(PrettyInputArchive& ar1, VARIANT_NAME& v) {
   } else
   VARIANT_TYPES_LIST
 #undef X
-  ar1.error(name + " is not part of variant "_s + typeid(VARIANT_NAME).name());
+#ifdef DEFAULT_ELEM
+#define X(Type, Index)\
+  if (!strcmp(DEFAULT_ELEM, #Type)) { \
+    v.index = Index; \
+    new(&v.elem##Index) Type;\
+    ar1.seek(bookmark);\
+    ar1(v.elem##Index); \
+  } else
+  VARIANT_TYPES_LIST
+  #undef X
+  ar1.error("Bad default elem");
+#else
+  ar1.error(name + " is not part of variant");
+#endif
 }

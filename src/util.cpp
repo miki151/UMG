@@ -28,6 +28,14 @@ Rectangle::Rectangle(Range xRange, Range yRange)
     : Rectangle(xRange.getStart(), yRange.getStart(), xRange.getEnd(), yRange.getEnd()) {
 }
 
+Rectangle Rectangle::centered(Vec2 center, int radius) {
+  return Rectangle(center - Vec2(radius, radius), center + Vec2(radius + 1, radius + 1));
+}
+
+Rectangle Rectangle::centered(int radius) {
+  return Rectangle(-Vec2(radius, radius), Vec2(radius + 1, radius + 1));
+}
+
 Rectangle::Iter::Iter(int x1, int y1, int px1, int py1, int kx1, int ky1) : pos(x1, y1), py(py1), ky(ky1) {}
 
 Vec2 Rectangle::random(RandomGen& r) const {
@@ -158,6 +166,9 @@ vector<Vec2> Rectangle::getAllSquares() const {
   return ret;
 }
 
+Range::Range() {
+}
+
 Range::Range(int a, int b) : start(a), finish(b) {
 }
 Range::Range(int a) : Range(0, a) {}
@@ -236,6 +247,20 @@ Range::Iter Range::begin() {
 
 Range::Iter Range::end() {
   return Iter(finish, start, finish, increment);
+}
+
+void Range::serialize(PrettyInputArchive& ar1, const unsigned int version) {
+  if (ar1.readMaybe(start)) {
+    finish = start + 1;
+    increment = 1;
+    return;
+  }
+  optional_no_none<int> finish;
+  ar1(NAMED(start), OPTION(finish), OPTION(increment));
+  ar1(endInput());
+  this->finish = finish.value_or(start + 1);
+  if (this->start >= this->finish)
+    ar1.error("Range is empty: (" + toString(start) + ", " + toString(this->finish) + ")");
 }
 
 Range::Range(int start, int end, int increment) : start(start), finish(end), increment(increment) {}

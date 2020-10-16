@@ -1,7 +1,7 @@
 #pragma once
 
 #include "stdafx.h"
+#include "canvas.h"
 
-struct Map;
-void renderAscii(const Map&, istream& file);
-string renderHtml(const Map&, const char* renderer);
+void renderAscii(const LayoutCanvas::Map&, istream& file);
+string renderHtml(const LayoutCanvas::Map&, const char* renderer);

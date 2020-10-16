@@ -2,20 +2,22 @@
 
 #include "stdafx.h"
 #include "util.h"
-#include "token.h"
 #include "pretty_archive.h"
+#include "canvas.h"
 
-struct Predicate;
+using Token = string;
 
-namespace Predicates {
+struct TilePredicate;
+
+namespace TilePredicates {
 
 struct On {
   Token SERIAL(token);
-  SERIALIZE_ALL(token)
+  SERIALIZE_ALL(roundBracket(), NAMED(token))
 };
 
 struct Not {
-  HeapAllocated<Predicate> SERIAL(predicate);
+  HeapAllocated<TilePredicate> SERIAL(predicate);
   SERIALIZE_ALL(predicate)
 };
 
@@ -24,20 +26,38 @@ struct True {
 };
 
 struct And {
-  vector<Predicate> SERIAL(predicates);
-  SERIALIZE_ALL(predicates)
+  vector<TilePredicate> SERIAL(predicates);
+  SERIALIZE_ALL(withRoundBrackets(predicates))
 };
 
 struct Or {
-  vector<Predicate> SERIAL(predicates);
-  SERIALIZE_ALL(predicates)
+  vector<TilePredicate> SERIAL(predicates);
+  SERIALIZE_ALL(withRoundBrackets(predicates))
 };
 
 struct Chance {
   double SERIAL(value);
-  SERIALIZE_ALL(value)
+  SERIALIZE_ALL(roundBracket(), NAMED(value))
 };
 
+struct Area {
+  int SERIAL(radius);
+  HeapAllocated<TilePredicate> SERIAL(predicate);
+  int SERIAL(minCount) = 1;
+  SERIALIZE_ALL(roundBracket(), NAMED(radius), NAMED(predicate), OPTION(minCount))
+};
+
+struct XMod {
+  int SERIAL(div);
+  int SERIAL(mod);
+  SERIALIZE_ALL(roundBracket(), NAMED(div), NAMED(mod))
+};
+
+struct YMod {
+  int SERIAL(div);
+  int SERIAL(mod);
+  SERIALIZE_ALL(roundBracket(), NAMED(div), NAMED(mod))
+};
 
 #define VARIANT_TYPES_LIST\
   X(On, 0)\
@@ -45,7 +65,10 @@ struct Chance {
   X(True, 2)\
   X(And, 3)\
   X(Or, 4)\
-  X(Chance, 5)
+  X(Chance, 5)\
+  X(Area, 6)\
+  X(XMod, 7)\
+  X(YMod, 8)
 
 #define VARIANT_NAME PredicateImpl
 
@@ -58,9 +81,7 @@ inline
 
 }
 
-struct Map;
-
-struct Predicate : Predicates::PredicateImpl {
+struct TilePredicate : TilePredicates::PredicateImpl {
   using PredicateImpl::PredicateImpl;
-  bool apply(Map*, Vec2, RandomGen&) const;
+  bool apply(LayoutCanvas::Map*, Vec2, RandomGen&) const;
 };

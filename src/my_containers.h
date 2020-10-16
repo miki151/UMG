@@ -4,6 +4,8 @@
 #include <set>
 #include <type_traits>
 #include <initializer_list>
+#include <set>
+#include <unordered_set>
 #include "optional.h"
 
 using std::initializer_list;
@@ -180,6 +182,14 @@ class vector {
       impl.push_back(elem);
     ++modCounter;
   }
+
+   void erase(int index, int count) {
+     impl.erase(impl.begin() + index, impl.begin() + index + count);
+   }
+
+   void insert(int index, const vector<T>& v) {
+     impl.insert(impl.begin() + index, v.begin(), v.end());
+   }
 
   optional<int> findAddress(const T* ptr) const {
     for (int i = 0; i < size(); ++i)
@@ -444,3 +454,61 @@ std::ostream& operator<<(std::ostream& d, const vector<T>& container){
   d << "}";
   return d;
 }
+
+template <typename T, typename Compare = std::less<T>>
+class set : public std::set<T, Compare> {
+  public:
+  using std::set<T, Compare>::set;
+
+  using base = std::set<T, Compare>;
+
+  int size() const {
+    return (int) base::size();
+  }
+
+  template <typename Fun>
+  auto transform(Fun fun) const {
+    vector<decltype(fun(std::declval<T>()))> ret;
+    ret.reserve(size());
+    for (const auto& elem : *this)
+      ret.push_back(fun(elem));
+    return ret;
+  }
+};
+
+template <typename T, typename Hash = std::hash<T>>
+class unordered_set : public std::unordered_set<T, Hash> {
+  public:
+  using std::unordered_set<T, Hash>::unordered_set;
+
+  using base = std::unordered_set<T, Hash>;
+
+  int size() const {
+    return (int) base::size();
+  }
+
+  template <typename Fun>
+  auto transform(Fun fun) const {
+    vector<decltype(fun(std::declval<T>()))> ret;
+    ret.reserve(size());
+    for (const auto& elem : *this)
+      ret.push_back(fun(elem));
+    return ret;
+  }
+
+  template <typename Fun>
+  auto filter(Fun fun) const {
+    unordered_set ret;
+    for (const auto& elem : *this)
+      if (fun(elem))
+        ret.insert(elem);
+    return ret;
+  }
+
+  vector<T> asVector() const {
+    vector<T> ret;
+    for (auto&& elem : *this)
+      ret.push_back(std::move(elem));
+    return ret;
+  }
+};

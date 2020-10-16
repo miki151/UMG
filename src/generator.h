@@ -2,145 +2,185 @@
 
 #include "stdafx.h"
 #include "util.h"
-#include "token.h"
 #include "pretty_archive.h"
 #include "predicate.h"
 
-struct Generator;
-struct Canvas;
+struct LayoutGenerator;
+struct LayoutCanvas;
+
+using Token = string;
 
 RICH_ENUM(MarginType, TOP, BOTTOM, LEFT, RIGHT);
-RICH_ENUM(PlacementPos, MIDDLE);
+RICH_ENUM(PlacementPos, MIDDLE, MIDDLE_V, MIDDLE_H, LEFT_CENTER, RIGHT_CENTER, TOP_CENTER, BOTTOM_CENTER);
 
-namespace Generators {
-
-struct None {
-  SERIALIZE_EMPTY()
-};
+namespace LayoutGenerators {
 
 struct Set {
   vector<Token> SERIAL(tokens);
-  SERIALIZE_ALL(tokens)
+  SERIALIZE_ALL(withRoundBrackets(tokens))
+};
+
+struct SetFront {
+  Token SERIAL(token);
+  SERIALIZE_ALL(roundBracket(), NAMED(token))
 };
 
 struct Reset {
   vector<Token> SERIAL(tokens);
-  SERIALIZE_ALL(tokens)
+  SERIALIZE_ALL(withRoundBrackets(tokens))
 };
 
-struct SetMaybe {
-  Predicate SERIAL(predicate);
-  vector<Token> SERIAL(tokens);
-  SERIALIZE_ALL(predicate, tokens)
+struct Filter {
+  TilePredicate SERIAL(predicate);
+  HeapAllocated<LayoutGenerator> SERIAL(generator);
+  heap_optional<LayoutGenerator> SERIAL(alt);
+  SERIALIZE_ALL(roundBracket(), NAMED(predicate), NAMED(generator), NAMED(alt))
 };
 
 struct Remove {
   vector<Token> SERIAL(tokens);
-  SERIALIZE_ALL(tokens)
+  SERIALIZE_ALL(withRoundBrackets(tokens))
 };
 
-struct Margin {
+struct MarginImpl {
   MarginType SERIAL(type);
   int SERIAL(width);
-  HeapAllocated<Generator> SERIAL(border);
-  HeapAllocated<Generator> SERIAL(inside);
-  SERIALIZE_ALL(type, width, border, inside)
+  HeapAllocated<LayoutGenerator> SERIAL(border);
+  HeapAllocated<LayoutGenerator> SERIAL(inside);
+  SERIALIZE_ALL(roundBracket(), NAMED(type), NAMED(width), NAMED(border), NAMED(inside))
 };
 
 struct Margins {
   int SERIAL(width);
-  HeapAllocated<Generator> SERIAL(border);
-  HeapAllocated<Generator> SERIAL(inside);
-  SERIALIZE_ALL(NAMED(width), NAMED(border), NAMED(inside))
+  HeapAllocated<LayoutGenerator> SERIAL(border);
+  HeapAllocated<LayoutGenerator> SERIAL(inside);
+  SERIALIZE_ALL(roundBracket(), NAMED(width), NAMED(border), NAMED(inside))
 };
 
-struct HRatio {
+struct SplitH {
   double SERIAL(r);
-  HeapAllocated<Generator> SERIAL(left);
-  HeapAllocated<Generator> SERIAL(right);
-  SERIALIZE_ALL(r, left, right)
+  HeapAllocated<LayoutGenerator> SERIAL(left);
+  HeapAllocated<LayoutGenerator> SERIAL(right);
+  SERIALIZE_ALL(roundBracket(), NAMED(r), NAMED(left), NAMED(right))
 };
 
-struct VRatio {
+struct SplitV {
   double SERIAL(r);
-  HeapAllocated<Generator> SERIAL(top);
-  HeapAllocated<Generator> SERIAL(bottom);
-  SERIALIZE_ALL(r, top, bottom)
+  HeapAllocated<LayoutGenerator> SERIAL(top);
+  HeapAllocated<LayoutGenerator> SERIAL(bottom);
+  SERIALIZE_ALL(roundBracket(), NAMED(r), NAMED(top), NAMED(bottom))
+};
+
+struct Position {
+  optional<Vec2> SERIAL(size);
+  optional<Vec2> SERIAL(minSize);
+  optional<Vec2> SERIAL(maxSize);
+  HeapAllocated<LayoutGenerator> SERIAL(generator);
+  PlacementPos SERIAL(position);
+  SERIALIZE_ALL(roundBracket(), NAMED(position), NAMED(size), NAMED(generator), NAMED(minSize), NAMED(maxSize))
 };
 
 struct Place {
   struct Elem {
-    Vec2 SERIAL(size);
-    HeapAllocated<Generator> SERIAL(generator);
-    int SERIAL(count) = 1;
-    Predicate SERIAL(predicate) = Predicates::True{};
-    optional<PlacementPos> SERIAL(position);
-    SERIALIZE_ALL(NAMED(size), NAMED(generator), OPTION(count), OPTION(predicate), OPTION(position))
+    optional<Vec2> SERIAL(size);
+    optional<Vec2> SERIAL(minSize);
+    optional<Vec2> SERIAL(maxSize);
+    HeapAllocated<LayoutGenerator> SERIAL(generator);
+    Range SERIAL(count) = Range(1, 2);
+    TilePredicate SERIAL(predicate) = TilePredicates::True{};
+    int SERIAL(minSpacing) = 0;
+    SERIALIZE_ALL(roundBracket(), NAMED(size), NAMED(generator), OPTION(count), OPTION(predicate), NAMED(minSize), NAMED(maxSize), OPTION(minSpacing))
   };
   vector<Elem> SERIAL(generators);
-  SERIALIZE_ALL(generators)
+  SERIALIZE_ALL(withRoundBrackets(generators))
+  void serialize(PrettyInputArchive&, const unsigned int version);
 };
 
 struct NoiseMap {
   struct Elem {
     double SERIAL(lower);
     double SERIAL(upper);
-    HeapAllocated<Generator> SERIAL(generator);
-    SERIALIZE_ALL(lower, upper, generator)
+    HeapAllocated<LayoutGenerator> SERIAL(generator);
+    SERIALIZE_ALL(roundBracket(), NAMED(lower), NAMED(upper), NAMED(generator))
   };
   vector<Elem> SERIAL(generators);
-  SERIALIZE_ALL(generators)
+  SERIALIZE_ALL(withRoundBrackets(generators))
 };
 
 struct Chain {
-  vector<Generator> SERIAL(generators);
+  vector<LayoutGenerator> SERIAL(generators);
   SERIALIZE_ALL(generators)
 };
 
-struct Call {
-  string SERIAL(name);
-  SERIALIZE_ALL(name)
+struct Choose {
+  struct Elem {
+    optional<double> SERIAL(chance);
+    HeapAllocated<LayoutGenerator> SERIAL(generator);
+    SERIALIZE_ALL(chance, generator)
+    void serialize(PrettyInputArchive&, const unsigned int version);
+  };
+
+  vector<Elem> SERIAL(generators);
+  SERIALIZE_ALL(withRoundBrackets(generators))
 };
 
 struct Connect {
   struct Elem {
     optional<double> SERIAL(cost);
-    Predicate SERIAL(predicate);
-    HeapAllocated<Generator> SERIAL(generator);
+    TilePredicate SERIAL(predicate);
+    HeapAllocated<LayoutGenerator> SERIAL(generator);
     SERIALIZE_ALL(cost, predicate, generator)
   };
-  Predicate SERIAL(toConnect);
+  TilePredicate SERIAL(toConnect);
   vector<Elem> SERIAL(elems);
-  SERIALIZE_ALL(toConnect, elems)
+  SERIALIZE_ALL(roundBracket(), NAMED(toConnect), NAMED(elems))
+  void serialize(PrettyInputArchive&, const unsigned int version);
+};
+
+struct Repeat {
+  Range SERIAL(count);
+  HeapAllocated<LayoutGenerator> SERIAL(generator);
+  SERIALIZE_ALL(roundBracket(), NAMED(count), NAMED(generator))
+};
+
+struct FloodFill {
+  TilePredicate SERIAL(predicate);
+  HeapAllocated<LayoutGenerator> SERIAL(generator);
+  SERIALIZE_ALL(roundBracket(), NAMED(predicate), NAMED(generator))
 };
 
 #define VARIANT_TYPES_LIST\
-  X(None, 0)\
-  X(Set, 1)\
+  X(Set, 0)\
+  X(SetFront, 1)\
   X(Reset, 2)\
-  X(SetMaybe, 3)\
-  X(Remove, 4)\
-  X(Margin, 5)\
+  X(Remove, 3)\
+  X(Filter, 4)\
+  X(MarginImpl, 5)\
   X(Margins, 6)\
-  X(HRatio, 7)\
-  X(VRatio, 8)\
-  X(Place, 9)\
-  X(NoiseMap, 10)\
-  X(Chain, 11)\
-  X(Connect, 12)
+  X(SplitH, 7)\
+  X(SplitV, 8)\
+  X(Position, 9)\
+  X(Place, 10)\
+  X(NoiseMap, 11)\
+  X(Chain, 12)\
+  X(Connect, 13)\
+  X(Choose, 14)\
+  X(Repeat, 15)\
+  X(FloodFill, 16)
 
 #define VARIANT_NAME GeneratorImpl
 
 #include "gen_variant.h"
+#define DEFAULT_ELEM "Chain"
 inline
 #include "gen_variant_serialize_pretty.h"
-
+#undef DEFAULT_ELEM
 #undef VARIANT_TYPES_LIST
 #undef VARIANT_NAME
 
 }
 
-struct Generator : Generators::GeneratorImpl {
+struct LayoutGenerator : LayoutGenerators::GeneratorImpl {
   using GeneratorImpl::GeneratorImpl;
-  [[nodiscard]] bool make(Canvas, RandomGen&) const;
+  [[nodiscard]] bool make(LayoutCanvas, RandomGen&) const;
 };

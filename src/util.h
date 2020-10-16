@@ -7,6 +7,15 @@
   throw std::runtime_error{"error"};
 }
 
+#define CHECK assert
+
+template <class T>
+string toString(const T& t) {
+  stringstream ss;
+  ss << t;
+  return ss.str();
+}
+
 template <class T>
 class HeapAllocated {
   public:
@@ -91,8 +100,11 @@ constexpr bool isOneOf(const T& value, const Arg1& arg1, const Args&... args) {
 
 inline std::string operator "" _s(const char* str, size_t) { return string(str); }
 
+class PrettyInputArchive;
+
 class Range {
   public:
+  Range();
   Range(int start, int end);
   explicit Range(int end);
   static Range singleElem(int);
@@ -131,6 +143,8 @@ class Range {
   Iter begin();
   Iter end();
 
+  void serialize(PrettyInputArchive& ar, const unsigned int version);
+
   private:
   Range(int start, int end, int increment);
   int SERIAL(start) = 0; // HASH(start)
@@ -145,7 +159,6 @@ Range All(const T& container) {
 
 class Rectangle;
 class RandomGen;
-class PrettyInputArchive;
 
 class Vec2 {
   public:
@@ -478,7 +491,7 @@ class RandomGen {
     return permutation(v);
   }
 
-  template <typename T>
+  /*template <typename T>
   vector<T> permutation(initializer_list<T> vi) {
     vector<T> v(vi);
     std::random_shuffle(v.begin(), v.end(), [this](int a) { return get(a);});
@@ -498,7 +511,7 @@ class RandomGen {
     CHECK(n <= v.size());
     std::random_shuffle(v.begin(), v.end(), [this](int a) { return get(a);});
     return v.getPrefix(n);
-  }
+  }*/
 
   template <typename T>
   vector<T> chooseN(int n, initializer_list<T> v) {
@@ -599,4 +612,101 @@ class DirtyTable {
   Table<int> dirty;
   T dirtyVal;
   int counter = 1;
+};
+
+template <typename Key, typename Map>
+optional<const typename Map::mapped_type&> getReferenceMaybe(const Map& m, const Key& key) {
+  auto it = m.find(key);
+  if (it != m.end())
+    return it->second;
+  else
+    return none;
+}
+
+template <typename Key, typename Map>
+optional<typename Map::mapped_type&> getReferenceMaybe(Map& m, const Key& key) {
+  auto it = m.find(key);
+  if (it != m.end())
+    return it->second;
+  else
+    return none;
+}
+
+template <class T>
+class heap_optional {
+  public:
+  heap_optional() {}
+
+  heap_optional(T&& o) noexcept : elem(new T(std::move(o))) {}
+  heap_optional(const T& o) noexcept : elem(new T(std::move(o))) {}
+
+  heap_optional(const heap_optional& o) noexcept : elem(o.elem ? new T(*o.elem) : nullptr) {}
+  heap_optional(heap_optional&& o) noexcept : elem(std::move(o.elem)) {}
+
+  T* operator -> () {
+    return elem.get();
+  }
+
+  const T* operator -> () const {
+    return elem.get();
+  }
+
+  T& operator * () {
+    return *elem;
+  }
+
+  const T& operator * () const {
+    return *elem;
+  }
+
+  explicit operator bool () const {
+    return !!elem;
+  }
+
+  void reset(T&& t) {
+    elem.reset(new T(std::move(t)));
+  }
+
+  void clear() {
+    elem.reset();
+  }
+
+  heap_optional& operator = (const T& t) {
+    elem = unique<T>(t);
+    return *this;
+  }
+
+  heap_optional& operator = (T&& t) noexcept {
+    elem = unique<T>(std::move(t));
+    return *this;
+  }
+
+  heap_optional& operator = (const heap_optional& t) noexcept {
+    if (t.elem)
+      elem = unique<T>(*t.elem);
+    else
+      clear();
+    return *this;
+  }
+
+  heap_optional& operator = (heap_optional&& t) noexcept {
+    elem = std::move(t.elem);
+    return *this;
+  }
+
+  heap_optional& operator = (none_t) noexcept {
+    clear();
+    return *this;
+  }
+
+  int getHash() const {
+    if (!elem)
+      return 0;
+    return combineHash(*elem);
+  }
+
+  SERIALIZE_ALL(elem)
+
+  private:
+  unique_ptr<T> SERIAL(elem);
 };

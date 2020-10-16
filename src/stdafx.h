@@ -77,12 +77,12 @@
 #include <map>
 #include <set>
 #include <any>
+#include <array>
 #include "optional.h"
 #include "my_containers.h"
 using std::any;
 using std::map;
 using std::multiset;
-using std::unordered_set;
 using std::array;
 using std::deque;
 using std::string;
@@ -121,7 +121,6 @@ using std::hash;
 using std::array;
 using std::uint8_t;
 using std::to_string;
-using std::set;
 
 using std::recursive_mutex;
 typedef std::unique_lock<recursive_mutex> RecursiveLock;

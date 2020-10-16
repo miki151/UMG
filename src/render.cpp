@@ -43,7 +43,7 @@ auto chooseBest(const Container& c, Fun f) {
   return ret;
 }
 
-void renderAscii(const Map& map1, istream& file) {
+void renderAscii(const LayoutCanvas::Map& map1, istream& file) {
   unordered_map<string, string> tokens;
   unordered_map<string, int> priority;
   int cnt = 0;
@@ -80,7 +80,7 @@ static string getHtmlColor(string c, const string& color) {
   return "<font color=\"" + color + "\">" + c + "</font>";
 }
 
-string renderHtml(const Map& map1, const char* renderer) {
+string renderHtml(const LayoutCanvas::Map& map1, const char* renderer) {
   string ret;
   unordered_map<string, string> tokens;
   unordered_map<string, int> priority;

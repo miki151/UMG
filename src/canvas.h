@@ -4,12 +4,16 @@
 #include "token.h"
 #include "util.h"
 
-struct Map {
-  Table<unordered_set<Token>> elems;
-};
+using Token = string;
 
-struct Canvas {
-  Canvas with(Rectangle area) const { return Canvas{area, map}; }
+struct LayoutCanvas {
+  struct Map {
+    Table<vector<Token>> elems;
+  };
+  LayoutCanvas with(Rectangle area) const {
+    //if (map->elems.getBounds().contains(area));
+    return LayoutCanvas{area, map};
+  }
   Rectangle area;
   Map* map;
 };
