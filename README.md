@@ -6,8 +6,8 @@ UMG is a scripting language for generating random maps of any kind. It is easy t
 
 Documentation
 =============
-http://keeperrl.com/umg/docs/
+http://keeperrl.com/~michal/umg/docs/
 
 Online playground
 =================
-http://keeperrl.com/umg/
+http://keeperrl.com/~michal/umg/
